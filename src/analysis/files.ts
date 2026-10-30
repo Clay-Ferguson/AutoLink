@@ -9,18 +9,28 @@ export const MAX_FILE_BYTES = 5 * 1024 * 1024;
 /** How much of a file is searched for a NUL byte. */
 const BINARY_SNIFF_BYTES = 8000;
 
-/** Excluded whatever the settings say. */
-const ALWAYS_EXCLUDED = ['**/node_modules', '**/.git'];
+/** An `excludePatterns` entry that means the same as a glob below any folder: a plain name, maybe with wildcards. */
+const NAME_PATTERN = /^[\w.@~+*?-]+$/;
 
 /**
  * Builds the exclude glob for `workspace.findFiles`. Passing any exclude
  * replaces the default `files.exclude`, so it is merged in here together with
  * `search.exclude`. Only entries set to `true` count; conditional entries
  * (`{ "when": … }`) are ignored.
+ *
+ * The `excludePatterns` entries that are plain names, such as `node_modules`,
+ * are added too, so the search never enters those folders. The caller still
+ * filters the results with all of `excludePatterns`.
+ * @param excludePatterns - The `autolink.excludePatterns` value.
  * @param settings - The `files.exclude` and `search.exclude` values.
  */
-export function buildExcludeGlob(...settings: unknown[]): string {
-  const patterns = new Set(ALWAYS_EXCLUDED);
+export function buildExcludeGlob(excludePatterns: unknown, ...settings: unknown[]): string {
+  const patterns = new Set<string>();
+  if (Array.isArray(excludePatterns)) {
+    for (const entry of excludePatterns) {
+      if (typeof entry === 'string' && NAME_PATTERN.test(entry.trim())) patterns.add(`**/${entry.trim()}`);
+    }
+  }
   for (const setting of settings) {
     if (typeof setting !== 'object' || setting === null) continue;
     for (const [pattern, enabled] of Object.entries(setting)) {

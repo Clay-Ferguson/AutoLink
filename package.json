@@ -125,9 +125,37 @@
           "items": {
             "type": "string"
           },
-          "default": [],
+          "default": [
+            ".git",
+            ".hg",
+            ".svn",
+            "node_modules",
+            "bower_components",
+            ".next",
+            ".nuxt",
+            ".svelte-kit",
+            ".angular",
+            ".turbo",
+            ".parcel-cache",
+            ".cache",
+            ".vscode-test",
+            "dist",
+            "out",
+            "build",
+            "coverage",
+            "__pycache__",
+            ".venv",
+            "venv",
+            ".tox",
+            ".nox",
+            ".mypy_cache",
+            ".pytest_cache",
+            ".ruff_cache",
+            ".ipynb_checkpoints",
+            "*.egg-info"
+          ],
           "scope": "resource",
-          "markdownDescription": "Files and folders AutoLink ignores, set per project: use the **Workspace** tab (`.vscode/settings.json`), or the **Folder** tab for one folder of a multi-root workspace. Their references get no links or warnings, link checks skip them, and renames don't update them. Paths are relative to the workspace folder root and use simple wildcards, not regular expressions: `*` matches any characters except `/`, `?` matches one character, `**` matches any number of folders. A pattern with a `/` is relative to the root (`test/*` ignores everything under `test`); one without matches a name in any folder (`fixtures`, `*.generated.ts`). A trailing `/` matches folders only."
+          "markdownDescription": "Files and folders AutoLink ignores. The default lists the version control, dependency, cache and build output folders of web and Python projects (`.git`, `node_modules`, `dist`, `__pycache__`, `.venv`, …); a list you set replaces it, so keep the entries you still want. Set it per project: use the **Workspace** tab (`.vscode/settings.json`), or the **Folder** tab for one folder of a multi-root workspace. Their references get no links or warnings, link checks skip them, and renames don't update them. Paths are relative to the workspace folder root and use simple wildcards, not regular expressions: `*` matches any characters except `/`, `?` matches one character, `**` matches any number of folders. A pattern with a `/` is relative to the root (`test/*` ignores everything under `test`); one without matches a name in any folder (`fixtures`, `*.generated.ts`). A trailing `/` matches folders only."
         }
       }
     }

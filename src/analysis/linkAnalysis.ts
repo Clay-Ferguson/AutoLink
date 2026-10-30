@@ -5,9 +5,9 @@
 
 import * as posix from 'node:path/posix';
 import * as vscode from 'vscode';
-import { readExcludePatterns } from '../config';
+import { readExcludeSetting } from '../config';
 import type { LinkService } from '../linkService';
-import { isExcludedPath } from '../resolve/excludePatterns';
+import { compileExcludePatterns, isExcludedPath } from '../resolve/excludePatterns';
 import { findLinkRefs } from '../scan/linkScanner';
 import { buildExcludeGlob, isBinary, lineAndColumn, lineStarts, MAX_FILE_BYTES } from './files';
 import { comparePaths, type LinkAnalysis, type SourceFileLinks } from './types';
@@ -21,8 +21,7 @@ export const BATCH_SIZE = 16;
 /**
  * Scans the text files under a folder, recursively, and checks each markdown
  * reference in them. Files excluded by `autolink.excludePatterns`,
- * `files.exclude` or `search.exclude`, `node_modules`, `.git` and the report
- * itself are skipped.
+ * `files.exclude` or `search.exclude` and the report itself are skipped.
  * @param service - Resolves and checks references.
  * @param folder - The folder to scan.
  * @param root - The workspace folder root; report paths are relative to it.
@@ -71,7 +70,7 @@ export async function analyzeFolder(
 /**
  * Lists the files under a folder, recursively, that a scan reads: all but
  * those excluded by `autolink.excludePatterns`, `files.exclude` or
- * `search.exclude`, `node_modules`, `.git` and the report.
+ * `search.exclude`, and the report.
  * @param folder - The folder to list.
  * @param root - The workspace folder root, whose settings apply and which holds the report.
  * @param token - Cancels the listing.
@@ -81,11 +80,13 @@ export async function listFiles(
   root: vscode.Uri,
   token?: vscode.CancellationToken,
 ): Promise<vscode.Uri[]> {
+  const excludeSetting = readExcludeSetting(root);
   const exclude = buildExcludeGlob(
+    excludeSetting,
     vscode.workspace.getConfiguration('files', root).get<unknown>('exclude'),
     vscode.workspace.getConfiguration('search', root).get<unknown>('exclude'),
   );
-  const excludePatterns = readExcludePatterns(root);
+  const excludePatterns = compileExcludePatterns(excludeSetting);
   const reportPath = posix.join(root.path, REPORT_FILE);
   return (await vscode.workspace.findFiles(new vscode.RelativePattern(folder, '**/*'), exclude, undefined, token)).filter(
     (uri) => uri.path !== reportPath && !isExcludedPath(excludePatterns, uri.path, root.path),

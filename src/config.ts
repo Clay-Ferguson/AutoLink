@@ -8,6 +8,40 @@ export const CONFIG_SECTION = 'autolink';
 
 const DEFAULT_EXTENSIONS = ['ts', 'tsx', 'js'];
 
+/**
+ * The default `excludePatterns`: version control, dependency, cache and build
+ * output folders of web and Python projects. Keep in sync with `package.json`.
+ */
+export const DEFAULT_EXCLUDE_PATTERNS = [
+  '.git',
+  '.hg',
+  '.svn',
+  'node_modules',
+  'bower_components',
+  '.next',
+  '.nuxt',
+  '.svelte-kit',
+  '.angular',
+  '.turbo',
+  '.parcel-cache',
+  '.cache',
+  '.vscode-test',
+  'dist',
+  'out',
+  'build',
+  'coverage',
+  '__pycache__',
+  '.venv',
+  'venv',
+  '.tox',
+  '.nox',
+  '.mypy_cache',
+  '.pytest_cache',
+  '.ruff_cache',
+  '.ipynb_checkpoints',
+  '*.egg-info',
+];
+
 /** What to do when renaming or moving files in VS Code breaks references. */
 export type RenameMode = 'prompt' | 'always' | 'never';
 
@@ -58,8 +92,16 @@ export function readConfig(): AutoLinkConfig {
  * @param root - The workspace folder root, or undefined for the window's setting.
  */
 export function readExcludePatterns(root: vscode.Uri | undefined): ExcludePattern[] {
-  const config = vscode.workspace.getConfiguration(CONFIG_SECTION, root);
-  return compileExcludePatterns(config.get<unknown>('excludePatterns', []));
+  return compileExcludePatterns(readExcludeSetting(root));
+}
+
+/**
+ * Reads the raw `excludePatterns` setting of a workspace folder, as
+ * {@link readExcludePatterns} does.
+ * @param root - The workspace folder root, or undefined for the window's setting.
+ */
+export function readExcludeSetting(root: vscode.Uri | undefined): unknown {
+  return vscode.workspace.getConfiguration(CONFIG_SECTION, root).get<unknown>('excludePatterns', DEFAULT_EXCLUDE_PATTERNS);
 }
 
 /** Memoizes a per-folder read; the settings are read again as a whole when they change. */

@@ -34,8 +34,8 @@ scrolls the "Tab Bar" heading to the top.
   workspace folder that holds the clicked item, and is also in the Command
   Palette as **AutoLink: Check Project Links**. AutoLink reads every text file
   in scope (markdown files included, binary files skipped, and anything
-  excluded by `autolink.excludePatterns`, `files.exclude`, `search.exclude`,
-  `node_modules` or `.git` left out), checks each reference, and writes `AUTOLINK_ANALYSIS.md` to the
+  excluded by `autolink.excludePatterns`, `files.exclude` or `search.exclude`
+  left out), checks each reference, and writes `AUTOLINK_ANALYSIS.md` to the
   workspace folder root, replacing any earlier report. The report lists the broken links, the
   links in each file, and each linked markdown file with the places that link
   to it.
@@ -90,7 +90,7 @@ User Settings (JSON)** from the Command Palette (**Ctrl+Shift+P**, or
 | `autolink.fileExtensions`      | `["ts", "tsx", "js"]` | Extensions of the source files that get links. Add `py`, `go`, … as needed.                                           |
 | `autolink.warnOnBrokenLinks`   | `true`                | Show warnings for references whose file or heading is missing.                                                        |
 | `autolink.updateLinksOnRename` | `"prompt"`            | After a rename or move breaks references: `prompt` asks, `always` updates them without asking, `never` doesn't check. |
-| `autolink.excludePatterns`     | `[]`                  | Files and folders AutoLink ignores in this project, as wildcard patterns such as `test/*`. See below.                 |
+| `autolink.excludePatterns`     | see below             | Files and folders AutoLink ignores in this project, as wildcard patterns such as `test/*`. See below.                 |
 
 Changes apply immediately, without reloading the window. In the Settings
 editor, `fileExtensions` and `excludePatterns` show as lists with an **Add
@@ -103,6 +103,22 @@ references get no links or warnings, **Check Folder Links** and **Check
 Project Links** skip them, and renames don't update them. References from
 other files to markdown files inside them still work.
 
+The default lists the version control, dependency, cache and build output
+folders of web and Python projects, so these are left alone everywhere:
+
+```json
+[
+  ".git", ".hg", ".svn",
+  "node_modules", "bower_components", ".next", ".nuxt", ".svelte-kit", ".angular",
+  ".turbo", ".parcel-cache", ".cache", ".vscode-test", "dist", "out", "build", "coverage",
+  "__pycache__", ".venv", "venv", ".tox", ".nox", ".mypy_cache", ".pytest_cache",
+  ".ruff_cache", ".ipynb_checkpoints", "*.egg-info"
+]
+```
+
+A list you set replaces the default rather than adding to it, so copy the
+entries you still want into it; `[]` turns the default off.
+
 Since every project has its own folders, set this per project: in the
 Settings editor, switch to the **Workspace** tab before adding patterns, so
 they are saved in the project's `.vscode/settings.json` (commit it to share
@@ -113,7 +129,7 @@ settings applies only to projects that set none of their own.
 ```json
 // .vscode/settings.json
 {
-  "autolink.excludePatterns": ["test/*", "fixtures", "*.generated.ts", "out/"]
+  "autolink.excludePatterns": [".git", "node_modules", "dist", "test/*", "fixtures", "*.generated.ts"]
 }
 ```
 

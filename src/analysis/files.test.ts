@@ -2,14 +2,21 @@ import { describe, expect, it } from 'vitest';
 import { buildExcludeGlob, isBinary, lineAndColumn, lineStarts } from './files';
 
 describe('buildExcludeGlob', () => {
-  it('always excludes node_modules and .git', () => {
-    expect(buildExcludeGlob(undefined, null)).toBe('{**/node_modules,**/.git}');
+  it('excludes nothing without settings', () => {
+    expect(buildExcludeGlob(undefined, undefined, null)).toBe('{}');
+  });
+
+  it('adds the excludePatterns entries that are plain names, below any folder', () => {
+    const excludePatterns = ['node_modules', ' .git ', '*.egg-info', 'test/*', 'out/', '[ab]', 3, ''];
+    expect(buildExcludeGlob(excludePatterns)).toBe('{**/node_modules,**/.git,**/*.egg-info}');
   });
 
   it('merges the entries set to true, without duplicates', () => {
     const filesExclude = { '**/.git': true, '**/.DS_Store': true, '**/off': false };
     const searchExclude = { '**/dist': true, '**/*.js': { when: '$(basename).ts' } };
-    expect(buildExcludeGlob(filesExclude, searchExclude)).toBe('{**/node_modules,**/.git,**/.DS_Store,**/dist}');
+    expect(buildExcludeGlob(['node_modules', '.git'], filesExclude, searchExclude)).toBe(
+      '{**/node_modules,**/.git,**/.DS_Store,**/dist}',
+    );
   });
 });
 

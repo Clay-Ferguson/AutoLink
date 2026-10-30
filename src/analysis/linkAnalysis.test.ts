@@ -45,14 +45,20 @@ describe('analyzeFolder', () => {
   });
 
   it('skips files excluded by excludePatterns', async () => {
-    fake.settings.set('excludePatterns', ['src/*']);
+    fake.settings.set('excludePatterns', ['node_modules', 'src/*']);
     const analysis = await analyze('/ws');
     expect(analysis?.sources.map((source) => source.path)).toEqual(['docs/guide.md']);
     expect(analysis?.filesScanned).toBe(2);
   });
 
+  it('scans node_modules when excludePatterns replaces the default without it', async () => {
+    fake.settings.set('excludePatterns', ['src/*']);
+    const analysis = await analyze('/ws');
+    expect(analysis?.sources.map((source) => source.path)).toEqual(['docs/guide.md', 'node_modules/pkg/readme.ts']);
+  });
+
   it('reads excludePatterns from the workspace folder settings', async () => {
-    fake.folderSettings.set('/ws', new Map([['excludePatterns', ['src/']]]));
+    fake.folderSettings.set('/ws', new Map([['excludePatterns', ['node_modules', 'src/']]]));
     const analysis = await analyze('/ws');
     expect(analysis?.sources.map((source) => source.path)).toEqual(['docs/guide.md']);
   });
