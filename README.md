@@ -134,6 +134,37 @@ matches any number of folders. A pattern containing a `/` is relative to the
 root of the workspace folder; one without matches a name at any depth.
 Matching a folder excludes everything inside it. Matching is case-sensitive.
 
+## Tips
+
+### Keeping example links out of the report
+
+Code and docs often contain markdown links that are only examples, such as a
+comment showing what a link to a heading looks like. If the file they name
+doesn't exist, they are reported as broken links in `AUTOLINK_ANALYSIS.md`
+when you run **Check Folder Links** or **Check Project Links**, and get a
+warning squiggle in the editor.
+
+To keep AutoLink from treating one as a reference, put a space on each side of
+the path, inside the parentheses:
+
+```md
+[Heading]( docs/file.md#slug )
+```
+
+instead of:
+
+```md
+[Heading](docs/file.md#slug)
+```
+
+AutoLink only recognizes a path that starts right after the `(` (see
+[Reference syntax](#reference-syntax)), so the padded form is ignored: no link,
+no warning, and no entry in the report. Markdown allows spaces around a link
+destination, so in a `.md` file the padded link still renders as a link.
+
+To ignore every reference in a file or folder, such as test fixtures, use
+[`autolink.excludePatterns`](#excluding-files-and-folders) instead.
+
 ## Development
 
 Requires Node 22 (see `.nvmrc`). TypeScript and all other tools are installed
