@@ -1,15 +1,60 @@
 # AutoLink
 
-AutoLink makes references to markdown files in your source code clickable.
-Write a path to a `.md` file, optionally followed by a `#heading-anchor`, in
-parentheses anywhere in a source file:
+AutoLink is a VS Code extension that checks and maintains links to markdown
+files across a whole project. It has three main uses, and each works without
+the others:
 
-```ts
-// See: (docs/user_guide/USER_GUIDE.md#tab-bar)
+- **Find broken links in a project's markdown docs.** **Check Project Links**
+  reads every text file in the workspace folder, markdown files included, and
+  reports each link to a `.md` file or heading that doesn't exist. A link from
+  `README.md` to `docs/guide.md#install` is checked just like a link in code.
+  This is worth having even if you never put a link in a source file. See
+  [Checking a project's markdown files](#checking-a-projects-markdown-files).
+- **Repair links when files and folders move.** When you rename or move a
+  file or folder in VS Code, AutoLink finds every link the move broke, in
+  markdown docs and source files alike, and offers to rewrite them to the new
+  location: one click on **Fix Links**, and one Ctrl+Z (Cmd+Z) to undo it. Set
+  [`autolink.updateLinksOnRename`](#settings) to `always` to have this happen
+  without asking. Moves made outside VS Code, such as `git mv`, aren't seen;
+  **Check Project Links** finds the links they broke.
+- **Make doc references in source code clickable.** Write a path to a `.md`
+  file, optionally followed by a `#heading-anchor`, in parentheses anywhere in
+  a source file:
+
+  ```ts
+  // See: (docs/user_guide/USER_GUIDE.md#tab-bar)
+  ```
+
+  Ctrl+click (Cmd+click on macOS) opens `USER_GUIDE.md` in the editor and
+  scrolls the "Tab Bar" heading to the top.
+
+## Checking a project's markdown files
+
+1. Run **AutoLink: Check Project Links** from the Command Palette, or
+   right-click in the Explorer and choose **AutoLink › Check Project Links**.
+   To check only part of the project, right-click a folder and choose
+   **AutoLink › Check Folder Links**.
+2. Open `AUTOLINK_ANALYSIS.md` in the workspace folder root. It lists every
+   broken link with its file, line and column and whether the file or only the
+   heading is missing, then every link in each file, and each linked markdown
+   file with the places that link to it.
+
+The check covers links whose target is a `.md` file, with or without a
+`#heading` anchor, wherever they're written. Links to images or other file
+types, URLs, and anchor-only links within the same file (`(#install)`) aren't
+checked.
+
+To see broken-link warnings in your markdown files while you edit them, not
+only in the report, add `md` to
+[`autolink.fileExtensions`](#settings), whose default lists only source file
+extensions:
+
+```json
+"autolink.fileExtensions": ["md", "ts", "tsx", "js"]
 ```
 
-Ctrl+click (Cmd+click on macOS) opens `USER_GUIDE.md` in the editor and
-scrolls the "Tab Bar" heading to the top.
+Links in markdown files are updated after a rename or move whatever that
+setting says.
 
 ## Features
 

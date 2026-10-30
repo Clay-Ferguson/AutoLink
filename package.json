@@ -1,7 +1,7 @@
 {
   "name": "autolink",
   "displayName": "AutoLink",
-  "description": "Ctrl/Cmd-click markdown file references like (docs/guide.md#section) in source files to open them in the editor at that heading.",
+  "description": "Finds broken links to markdown files and headings across a whole project, markdown docs included, and makes references like (docs/guide.md#section) in source files Ctrl/Cmd-clickable.",
   "version": "0.1.0",
   "publisher": "clayferguson",
   "license": "MIT",
