@@ -1,0 +1,7 @@
+# Allowlist: ignore everything, then keep only what the packaged extension needs.
+**
+!dist/extension.js
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE

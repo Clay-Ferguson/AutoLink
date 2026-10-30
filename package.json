@@ -1,0 +1,157 @@
+{
+  "name": "autolink",
+  "displayName": "AutoLink",
+  "description": "Ctrl/Cmd-click markdown file references like (docs/guide.md#section) in source files to open them in the editor at that heading.",
+  "version": "0.1.0",
+  "publisher": "clayferguson",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.100.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "markdown",
+    "links",
+    "comments",
+    "documentation",
+    "navigation"
+  ],
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "AutoLink reads files to find references and headings. It writes AUTOLINK_ANALYSIS.md when you check links, and rewrites references broken by a rename or move only when you choose Fix Links (or set autolink.updateLinksOnRename to always). It runs no processes."
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "autolink.openLink",
+        "title": "AutoLink: Open Link"
+      },
+      {
+        "command": "autolink.checkFolderLinks",
+        "title": "Check Folder Links",
+        "category": "AutoLink"
+      },
+      {
+        "command": "autolink.checkProjectLinks",
+        "title": "Check Project Links",
+        "category": "AutoLink"
+      }
+    ],
+    "submenus": [
+      {
+        "id": "autolink.explorerMenu",
+        "label": "AutoLink"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "autolink.openLink",
+          "when": "false"
+        },
+        {
+          "command": "autolink.checkFolderLinks",
+          "when": "false"
+        },
+        {
+          "command": "autolink.checkProjectLinks",
+          "when": "workspaceFolderCount > 0"
+        }
+      ],
+      "explorer/context": [
+        {
+          "submenu": "autolink.explorerMenu",
+          "group": "autolink"
+        }
+      ],
+      "autolink.explorerMenu": [
+        {
+          "command": "autolink.checkFolderLinks",
+          "when": "explorerResourceIsFolder",
+          "group": "1_check@1"
+        },
+        {
+          "command": "autolink.checkProjectLinks",
+          "group": "1_check@2"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "AutoLink",
+      "properties": {
+        "autolink.fileExtensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "ts",
+            "tsx",
+            "js"
+          ],
+          "markdownDescription": "File extensions (without the dot) of the source files in which markdown references such as `(docs/guide.md#section)` become clickable links."
+        },
+        "autolink.warnOnBrokenLinks": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Show a warning when a referenced markdown file, or the heading named by its `#anchor`, cannot be found."
+        },
+        "autolink.updateLinksOnRename": {
+          "type": "string",
+          "enum": [
+            "prompt",
+            "always",
+            "never"
+          ],
+          "enumDescriptions": [
+            "Ask before updating the references that a rename or move broke.",
+            "Update the references without asking.",
+            "Don't check references after renames and moves."
+          ],
+          "default": "prompt",
+          "markdownDescription": "What to do when renaming or moving files or folders in VS Code breaks references such as `(docs/guide.md#section)`. Updated references keep their style: relative to the source file or to the workspace folder root."
+        },
+        "autolink.excludePatterns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "scope": "resource",
+          "markdownDescription": "Files and folders AutoLink ignores, set per project: use the **Workspace** tab (`.vscode/settings.json`), or the **Folder** tab for one folder of a multi-root workspace. Their references get no links or warnings, link checks skip them, and renames don't update them. Paths are relative to the workspace folder root and use simple wildcards, not regular expressions: `*` matches any characters except `/`, `?` matches one character, `**` matches any number of folders. A pattern with a `/` is relative to the root (`test/*` ignores everything under `test`); one without matches a name in any folder (`fixtures`, `*.generated.ts`). A trailing `/` matches folders only."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run typecheck && npm run lint && npm test",
+    "vscode:prepublish": "node esbuild.mjs --production",
+    "package": "vsce package --no-dependencies --allow-missing-repository --no-rewrite-relative-links"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^22.20.5",
+    "@types/vscode": "~1.100.0",
+    "@vscode/vsce": "^4.1.0",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.13.0",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.72.1",
+    "vitest": "^5.0.5"
+  }
+}
