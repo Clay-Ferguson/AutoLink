@@ -1,8 +1,8 @@
 # AutoLink
 
 AutoLink is a **VSCode Extension** that checks and maintains links to markdown
-files across a whole project. AutoLink allows you to click links
-that exist in source code comments for any kind of source code, to open the linked 
+files across a whole project. AutoLink allows you to click links in source code 
+comments for any kind of source code, to open the linked 
 files (i.e. basic hyperlink type functionality). This makes it a better UX for 
 having specific documentation/spec content be linked to by the code that implements
 it.
@@ -258,30 +258,4 @@ VS Code. To install a packaged build by hand:
 code --install-extension autolink-0.1.0.vsix
 ```
 
-### Layout
 
-```
-src/
-  extension.ts            wiring only
-  config.ts               autolink.* settings
-  scan/linkScanner.ts     finds references in text (pure)
-  markdown/headings.ts    markdown headings and GitHub slugs (pure)
-  resolve/paths.ts        candidate paths and containment (pure)
-  resolve/excludePatterns.ts  autolink.excludePatterns wildcards (pure)
-  linkService.ts          resolves references to files; caches results
-  providers/linkProvider.ts   DocumentLinkProvider
-  diagnostics.ts          broken-link warnings
-  commands/openLink.ts    opens the file at the heading
-  commands/checkLinks.ts  "Check Folder/Project Links": scans, writes the report
-  analysis/linkAnalysis.ts  checks every reference under a folder
-  analysis/types.ts       scan result data and the reverse index (pure)
-  analysis/files.ts       exclude glob, binary test, line/column (pure)
-  analysis/report.ts      formats AUTOLINK_ANALYSIS.md (pure)
-  rename/renameMapping.ts maps paths across renames, rewrites references (pure)
-  rename/renameCheck.ts   finds references broken by renames, applies fixes
-  rename/renameWatcher.ts follows renames: prompt, report, fix
-  test/fakeVscode.ts      stand-in for the vscode module in unit tests
-```
-
-The modules marked "pure" don't import `vscode` and hold most of the logic.
-Tests sit next to the code they test (`*.test.ts`).
