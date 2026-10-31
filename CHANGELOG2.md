@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Bare file names: a reference with no folder, such as `(USER_GUIDE.md#tab-bar)`, that isn't next to the source file or in the workspace folder root opens the one markdown file of that name anywhere in the workspace folder (excluded folders not searched). When several files have the name, clicking warns and lists them, and the warnings and link checks report the reference as ambiguous (`AMBIGUOUS FILE` in `AUTOLINK_ANALYSIS.md`). Renaming the file rewrites bare references to the new name.
+
 - **AutoLink** submenu on the Explorer context menu with **Check Folder Links** (folders only) and **Check Project Links** (also in the Command Palette; scans the workspace folder holding the clicked item). Each checks every markdown reference in the text files in scope and writes `AUTOLINK_ANALYSIS.md` (broken links, links per file, and which files link to each markdown file) to the workspace folder root.
 - Links follow renames: renaming or moving a file or folder in VS Code finds the references it broke and offers to update them (**Fix Links**) or list them (**Show**). Updated references keep their style. New setting `autolink.updateLinksOnRename` (`prompt`, `always`, `never`).
 - Broken-link warnings in open editors now update after a folder is renamed.

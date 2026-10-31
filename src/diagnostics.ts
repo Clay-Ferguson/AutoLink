@@ -2,7 +2,7 @@
 
 import * as vscode from 'vscode';
 import { appliesTo, type AutoLinkConfig } from './config';
-import type { BrokenLink, LinkService } from './linkService';
+import { listMatches, type BrokenLink, type LinkService } from './linkService';
 
 /** Pause after the last edit before a document is checked again. */
 const DEBOUNCE_MS = 300;
@@ -90,14 +90,22 @@ export class BrokenLinkDiagnostics implements vscode.Disposable {
   }
 }
 
-function toDiagnostic(document: vscode.TextDocument, { ref, problem }: BrokenLink): vscode.Diagnostic {
+const CODES: Record<BrokenLink['problem'], string> = {
+  missingFile: 'missing-file',
+  missingAnchor: 'missing-anchor',
+  ambiguousFile: 'ambiguous-file',
+};
+
+function toDiagnostic(document: vscode.TextDocument, { ref, problem, matches }: BrokenLink): vscode.Diagnostic {
   const range = new vscode.Range(document.positionAt(ref.start), document.positionAt(ref.end));
   const message =
     problem === 'missingFile'
       ? `Markdown file not found: ${ref.path}`
-      : `Heading '#${ref.fragment}' not found in ${ref.path}`;
+      : problem === 'ambiguousFile'
+        ? `Markdown file name not unique: ${ref.path} (${matches?.length ?? 0} files: ${listMatches(matches ?? [])})`
+        : `Heading '#${ref.fragment}' not found in ${ref.path}`;
   const diagnostic = new vscode.Diagnostic(range, message, vscode.DiagnosticSeverity.Warning);
   diagnostic.source = 'AutoLink';
-  diagnostic.code = problem === 'missingFile' ? 'missing-file' : 'missing-anchor';
+  diagnostic.code = CODES[problem];
   return diagnostic;
 }

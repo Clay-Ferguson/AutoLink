@@ -118,6 +118,38 @@ describe('findLinksBrokenByRenames', () => {
   });
 });
 
+describe('findLinksBrokenByRenames, bare file names', () => {
+  it('rewrites a bare name when its file is renamed', async () => {
+    fake.files.set('/ws/docs/guide/GUIDE.md', '# Guide\n');
+    fake.files.set('/ws/src/app.ts', '// (USER_GUIDE.md#tab-bar)\n');
+    expect(await check(['/ws/docs/guide/USER_GUIDE.md', '/ws/docs/guide/GUIDE.md'])).toMatchObject([
+      { source: '/ws/src/app.ts', text: 'USER_GUIDE.md#tab-bar', target: '/ws/docs/guide/GUIDE.md', replacement: 'GUIDE.md#tab-bar' },
+    ]);
+  });
+
+  it('writes a path when the new name is taken', async () => {
+    fake.files.set('/ws/docs/guide/GUIDE.md', '# Guide\n');
+    fake.files.set('/ws/other/GUIDE.md', '# Other\n');
+    fake.files.set('/ws/src/app.ts', '// (USER_GUIDE.md)\n');
+    expect(await check(['/ws/docs/guide/USER_GUIDE.md', '/ws/docs/guide/GUIDE.md'])).toMatchObject([
+      { text: 'USER_GUIDE.md', replacement: 'docs/guide/GUIDE.md' },
+    ]);
+  });
+
+  it('leaves a bare name alone when its file only moves', async () => {
+    fake.files.set('/ws/manual/USER_GUIDE.md', '# Guide\n');
+    fake.files.set('/ws/src/app.ts', '// (USER_GUIDE.md)\n');
+    expect(await check(['/ws/docs/USER_GUIDE.md', '/ws/manual/USER_GUIDE.md'])).toEqual([]);
+  });
+
+  it('leaves a bare name alone that was ambiguous before', async () => {
+    fake.files.set('/ws/a/GUIDE.md', '');
+    fake.files.set('/ws/b/NOTES.md', '');
+    fake.files.set('/ws/src/app.ts', '// (NOTES.md)\n');
+    expect(await check(['/ws/a/NOTES.md', '/ws/a/GUIDE.md'])).toEqual([]);
+  });
+});
+
 describe('findLinksBrokenByRenames, edge cases', () => {
   it('reports every reference to the renamed file, with lines and columns', async () => {
     fake.files.set('/ws/docs/new.md', '# New\n');
@@ -282,10 +314,11 @@ describe('findLinksBrokenByRenames, edge cases', () => {
   it('reads only the moved file when no markdown file or folder was renamed', async () => {
     const findFiles = vi.spyOn(workspace, 'findFiles');
     fake.files.set('/ws/src/guide.md', '# Near\n');
-    // `../src/guide.md` still resolves the same from /ws/lib; `guide.md` doesn't.
-    fake.files.set('/ws/lib/a.ts', '// (../src/guide.md) (guide.md)\n');
+    // `../src/guide.md` still resolves the same from /ws/lib; `./guide.md` doesn't
+    // (a bare `guide.md` would still find the only guide.md by name).
+    fake.files.set('/ws/lib/a.ts', '// (../src/guide.md) (./guide.md)\n');
     expect(await check(['/ws/src/a.ts', '/ws/lib/a.ts'])).toMatchObject([
-      { text: 'guide.md', replacement: '../src/guide.md' },
+      { text: './guide.md', replacement: '../src/guide.md' },
     ]);
     expect(findFiles).not.toHaveBeenCalled();
   });

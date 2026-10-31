@@ -74,11 +74,13 @@ export async function analyzeFolder(
  * @param folder - The folder to list.
  * @param root - The workspace folder root, whose settings apply and which holds the report.
  * @param token - Cancels the listing.
+ * @param include - A glob of the files to list, relative to the folder.
  */
 export async function listFiles(
   folder: vscode.Uri,
   root: vscode.Uri,
   token?: vscode.CancellationToken,
+  include = '**/*',
 ): Promise<vscode.Uri[]> {
   const excludeSetting = readExcludeSetting(root);
   const exclude = buildExcludeGlob(
@@ -88,7 +90,7 @@ export async function listFiles(
   );
   const excludePatterns = compileExcludePatterns(excludeSetting);
   const reportPath = posix.join(root.path, REPORT_FILE);
-  return (await vscode.workspace.findFiles(new vscode.RelativePattern(folder, '**/*'), exclude, undefined, token)).filter(
+  return (await vscode.workspace.findFiles(new vscode.RelativePattern(folder, include), exclude, undefined, token)).filter(
     (uri) => uri.path !== reportPath && !isExcludedPath(excludePatterns, uri.path, root.path),
   );
 }
@@ -107,12 +109,13 @@ async function checkFile(service: LinkService, uri: vscode.Uri, root: vscode.Uri
   const checked = await service.checkLinks(uri, refs);
   return {
     path,
-    links: checked.map(({ ref, status, target }) => ({
+    links: checked.map(({ ref, status, target, matches }) => ({
       ...lineAndColumn(starts, ref.start),
       path: ref.path,
       fragment: ref.fragment,
       status,
       target: target && posix.relative(root.path, target.path),
+      ...(matches && { matches: matches.map((match) => posix.relative(root.path, match.path)) }),
     })),
   };
 }

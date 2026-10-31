@@ -4,7 +4,7 @@
  */
 
 import * as vscode from 'vscode';
-import type { LinkService } from '../linkService';
+import { listMatches, type LinkService } from '../linkService';
 import { findHeadingLine } from '../markdown/headings';
 
 export const OPEN_LINK_COMMAND = 'autolink.openLink';
@@ -44,14 +44,20 @@ export function parseOpenLinkArgs(value: unknown): OpenLinkArgs | undefined {
 /**
  * Opens the markdown file a link names, at the heading of its anchor. Only
  * `.md` files that the link service resolves (inside the source's workspace
- * folder) are opened.
+ * folder) are opened; a bare file name that several files have opens none.
  * @param service - Resolves the reference to a file.
  * @param value - The command argument (see {@link OpenLinkArgs}).
  */
 export async function openLink(service: LinkService, value: unknown): Promise<void> {
   const args = parseOpenLinkArgs(value);
   if (!args) return;
-  const target = await service.resolveTarget(vscode.Uri.parse(args.source), args.path);
+  const { target, ambiguous } = await service.resolve(vscode.Uri.parse(args.source), args.path);
+  if (ambiguous) {
+    void vscode.window.showWarningMessage(
+      `AutoLink: '${args.path}' is not unique: ${ambiguous.length} files have that name (${listMatches(ambiguous)}). Write its path instead.`,
+    );
+    return;
+  }
   if (!target) {
     void vscode.window.showWarningMessage(`AutoLink: Markdown file not found: ${args.path}`);
     return;

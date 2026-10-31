@@ -32,7 +32,9 @@ AutoLink has three main uses, and each works without the others:
   ```
 
   Ctrl+click (Cmd+click on macOS) opens `USER_GUIDE.md` in the editor and
-  scrolls the "Tab Bar" heading to the top.
+  scrolls the "Tab Bar" heading to the top. When only one file in the project
+  has that name, the folders can be left out: `(USER_GUIDE.md#tab-bar)` works
+  too. See [Bare file names](#bare-file-names).
 
 ## Checking a project's markdown files
 
@@ -75,7 +77,9 @@ setting says.
   on GitHub.
 - **Path resolution.** A path is tried relative to the source file's folder
   first, then relative to the workspace folder root. Paths that would leave the
-  workspace folder are ignored.
+  workspace folder are ignored. A bare file name found in neither place opens
+  the one markdown file of that name in the workspace folder (see
+  [Bare file names](#bare-file-names)).
 - **Broken-link warnings.** A reference whose file or heading can't be found
   gets a warning squiggle and appears in the Problems panel. Warnings update as
   you edit, save, create or delete markdown files.
@@ -120,11 +124,36 @@ anchor are underlined, not the brackets or the title.
 | `(./notes.md)`, `(../../docs/guide.md)` | the file, relative to the source file's folder  |
 | `(<docs/My Notes/todo.md>)`             | a path with spaces, in angle brackets           |
 | `(docs/guide.md "Title")`               | the file; a `"…"` or `'…'` title is ignored     |
+| `(guide.md#install)`                    | the only `guide.md` in the project              |
 
 Not treated as references: a path without parentheses (`docs/guide.md`), URLs
 (`(https://…/guide.md)`, which VS Code already links), absolute paths, paths
 with spaces outside angle brackets, URL-encoded paths (`My%20Notes/todo.md`),
 and other extensions such as `.mdx`.
+
+### Bare file names
+
+A reference with no folder in it, such as `(USER_GUIDE.md)` or
+`(USER_GUIDE.md#tab-bar)`, is looked up like any other path first: next to
+the source file, then in the workspace folder root. If it isn't in either, it
+names the markdown file with exactly that name (case included) anywhere in the
+workspace folder, as long as there is only one. That keeps references short
+when the docs live deep in the tree, and they keep working when a doc moves to
+another folder.
+
+- If several files have the name, the reference is **ambiguous**: clicking it
+  shows a warning that lists the files instead of opening one, the editor
+  shows a warning squiggle, and the link checks report it as
+  `AMBIGUOUS FILE`. Write a path to pick one, or rename one of the files.
+  Adding a second file with the same name later makes existing bare
+  references to that name ambiguous, and the warnings show it.
+- Files and folders excluded by `autolink.excludePatterns`, `files.exclude`
+  or `search.exclude` (such as `node_modules`, which holds many `README.md`
+  files) are not searched, so they never make a name ambiguous.
+- `./USER_GUIDE.md` is a path, not a bare name: it means the file next to the
+  source file and nothing else.
+- Renaming the file in VS Code rewrites bare references to its new name, or
+  to a path from the workspace folder root if the new name is not unique.
 
 ## Settings
 

@@ -1,8 +1,8 @@
 import type * as vscode from 'vscode';
-import { beforeEach, describe, expect, it } from 'vitest';
-import { LinkService } from './linkService';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { LinkService, listMatches } from './linkService';
 import { findLinkRefs } from './scan/linkScanner';
-import { FakeDocument, Uri, fake } from './test/fakeVscode';
+import { FakeDocument, Uri, fake, workspace } from './test/fakeVscode';
 
 const asDocument = (document: FakeDocument) => document as unknown as vscode.TextDocument;
 const asUri = (uri: Uri) => uri as unknown as vscode.Uri;
@@ -12,6 +12,10 @@ beforeEach(() => {
   fake.folders = ['/ws'];
   fake.files.set('/ws/docs/guide.md', '# Guide\n\n## Tab Bar\n');
   fake.files.set('/outside/secret.md', '# Secret\n');
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
 });
 
 describe('LinkService.resolveTarget', () => {
@@ -117,5 +121,97 @@ describe('LinkService.checkLinks', () => {
       ['docs/guide.md', 'missingAnchor', '/ws/docs/guide.md'],
       ['docs/missing.md', 'missingFile', undefined],
     ]);
+  });
+});
+
+describe('LinkService.resolve, bare file names', () => {
+  const app = asUri(Uri.file('/ws/src/app.ts'));
+
+  it('finds the only markdown file of that name anywhere in the workspace folder', async () => {
+    fake.files.set('/ws/docs/user_guide/USER_GUIDE.md', '# Guide\n');
+    expect((await new LinkService().resolve(app, 'USER_GUIDE.md')).target?.path).toBe('/ws/docs/user_guide/USER_GUIDE.md');
+  });
+
+  it('prefers a file next to the source or in the root over a namesake elsewhere', async () => {
+    fake.files.set('/ws/docs/a/NOTES.md', '');
+    fake.files.set('/ws/docs/b/NOTES.md', '');
+    fake.files.set('/ws/src/NOTES.md', '');
+    fake.files.set('/ws/LICENSE.md', '');
+    fake.files.set('/ws/vendor/LICENSE.md', '');
+    const service = new LinkService();
+    expect((await service.resolve(app, 'NOTES.md')).target?.path).toBe('/ws/src/NOTES.md');
+    expect((await service.resolve(app, 'LICENSE.md')).target?.path).toBe('/ws/LICENSE.md');
+  });
+
+  it('reports every file when the name is not unique', async () => {
+    fake.files.set('/ws/docs/b/NOTES.md', '');
+    fake.files.set('/ws/docs/a/NOTES.md', '');
+    const { target, ambiguous } = await new LinkService().resolve(app, 'NOTES.md');
+    expect(target).toBeUndefined();
+    expect(ambiguous?.map(({ path }) => path)).toEqual(['/ws/docs/a/NOTES.md', '/ws/docs/b/NOTES.md']);
+  });
+
+  it('matches the name exactly, case included', async () => {
+    fake.files.set('/ws/docs/user_guide/USER_GUIDE.md', '');
+    expect(await new LinkService().resolve(app, 'user_guide.md')).toEqual({});
+  });
+
+  it('does not search by name for a path, even ./NAME.md', async () => {
+    fake.files.set('/ws/docs/user_guide/USER_GUIDE.md', '');
+    const service = new LinkService();
+    expect(await service.resolve(app, './USER_GUIDE.md')).toEqual({});
+    expect(await service.resolve(app, 'user_guide/USER_GUIDE.md')).toEqual({});
+  });
+
+  it('ignores namesakes in excluded folders', async () => {
+    fake.files.set('/ws/docs/README.md', '');
+    fake.files.set('/ws/node_modules/pkg/README.md', '');
+    fake.folderSettings.set('/ws', new Map([['excludePatterns', ['node_modules', 'test/*']]]));
+    fake.files.set('/ws/test/fixtures/README.md', '');
+    expect((await new LinkService().resolve(app, 'README.md')).target?.path).toBe('/ws/docs/README.md');
+  });
+
+  it('does not search outside a workspace folder', async () => {
+    fake.folders = [];
+    fake.files.set('/loose/docs/notes.md', '');
+    expect(await new LinkService().resolve(asUri(Uri.file('/loose/a.ts')), 'notes.md')).toEqual({});
+  });
+
+  it('lists the markdown files once, until invalidateMarkdownIndex', async () => {
+    const findFiles = vi.spyOn(workspace, 'findFiles');
+    fake.files.set('/ws/docs/a/NOTES.md', '');
+    const service = new LinkService();
+    expect((await service.resolve(app, 'NOTES.md')).target?.path).toBe('/ws/docs/a/NOTES.md');
+    fake.files.set('/ws/docs/b/NOTES.md', '');
+    expect((await service.resolve(app, 'NOTES.md')).target?.path).toBe('/ws/docs/a/NOTES.md');
+    expect(findFiles).toHaveBeenCalledTimes(1);
+    service.invalidateMarkdownIndex();
+    expect((await service.resolve(app, 'NOTES.md')).ambiguous).toHaveLength(2);
+    expect(findFiles).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips listed files that were deleted since', async () => {
+    fake.files.set('/ws/docs/a/NOTES.md', '');
+    fake.files.set('/ws/docs/b/NOTES.md', '');
+    const service = new LinkService();
+    expect((await service.resolve(app, 'NOTES.md')).ambiguous).toHaveLength(2);
+    fake.files.delete('/ws/docs/b/NOTES.md');
+    expect((await service.resolve(app, 'NOTES.md')).target?.path).toBe('/ws/docs/a/NOTES.md');
+  });
+
+  it('flags an ambiguous name in checkLinks and findBrokenLinks', async () => {
+    fake.files.set('/ws/docs/a/NOTES.md', '');
+    fake.files.set('/ws/docs/b/NOTES.md', '');
+    const service = new LinkService();
+    const broken = await service.findBrokenLinks(asDocument(new FakeDocument(Uri.file('/ws/src/app.ts'), '// (NOTES.md#x)')));
+    expect(broken.map(({ ref, problem, matches }) => [ref.path, problem, matches?.length])).toEqual([['NOTES.md', 'ambiguousFile', 2]]);
+  });
+});
+
+describe('listMatches', () => {
+  it('names the files relative to the workspace root, at most five', () => {
+    const uris = [1, 2, 3, 4, 5, 6].map((n) => asUri(Uri.file(`/ws/d${n}/A.md`)));
+    expect(listMatches(uris.slice(0, 2))).toBe('d1/A.md, d2/A.md');
+    expect(listMatches(uris)).toBe('d1/A.md, d2/A.md, d3/A.md, d4/A.md, d5/A.md, …');
   });
 });

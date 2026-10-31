@@ -22,6 +22,16 @@ export function candidatePaths(docDir: string, workspaceRoot: string | undefined
 }
 
 /**
+ * Reports whether a reference is a bare file name such as `USER_GUIDE.md`,
+ * with no folder at all, not even `./`. Only such a reference may resolve to
+ * the one file of that name anywhere in the workspace folder.
+ * @param refPath - The relative path written in the source.
+ */
+export function isBareName(refPath: string): boolean {
+  return !refPath.includes('/');
+}
+
+/**
  * Reports whether a path is the folder itself or lies inside it. Both paths
  * must be normalized. Used to keep `../../../etc/x.md` from leaving the
  * workspace.

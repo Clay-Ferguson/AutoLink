@@ -11,6 +11,7 @@ const STATUS_LABELS: Record<LinkStatus, string> = {
   ok: 'OK',
   missingFile: 'MISSING FILE',
   missingAnchor: 'MISSING HEADING',
+  ambiguousFile: 'AMBIGUOUS FILE',
 };
 
 /**
@@ -41,7 +42,12 @@ export function formatReport(analysis: LinkAnalysis): string {
   else {
     out.push(
       ...codeBlock(
-        broken.map(({ source, link }) => [`${source}:${link.line}:${link.column}`, STATUS_LABELS[link.status], written(link)]),
+        broken.map(({ source, link }) => [
+          `${source}:${link.line}:${link.column}`,
+          STATUS_LABELS[link.status],
+          written(link),
+          matchesNote(link),
+        ]),
       ),
     );
   }
@@ -56,7 +62,7 @@ export function formatReport(analysis: LinkAnalysis): string {
           `${link.line}:${link.column}`,
           STATUS_LABELS[link.status],
           written(link),
-          link.target !== undefined && link.target !== link.path ? `-> ${link.target}` : '',
+          link.target !== undefined && link.target !== link.path ? `-> ${link.target}` : matchesNote(link),
         ]),
       ),
     );
@@ -132,6 +138,11 @@ export function formatRenameReport(
     );
   }
   return `${out.join('\n').trimEnd()}\n`;
+}
+
+/** For an ambiguous bare file name, the files it may mean; else empty. */
+function matchesNote(link: LinkRecord): string {
+  return link.matches ? `matches ${link.matches.join(', ')}` : '';
 }
 
 /** The reference as written: path and anchor. */

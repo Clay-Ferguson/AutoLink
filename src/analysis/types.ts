@@ -17,8 +17,10 @@ export interface LinkRecord {
   /** The anchor without its `#`, or undefined when there is none. */
   fragment?: string;
   status: LinkStatus;
-  /** The file the path resolves to; undefined when it is missing. */
+  /** The file the path resolves to; undefined when it is missing or ambiguous. */
   target?: string;
+  /** The files an ambiguous bare file name may mean. */
+  matches?: string[];
 }
 
 /** A scanned file that contains at least one reference. */

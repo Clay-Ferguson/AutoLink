@@ -29,6 +29,12 @@ export const greeting = 'Strings too: (docs/user_guide/USER_GUIDE.md#tab-bar)';
 // Warning: the file doesn't exist.
 // (docs/user_guide/MISSING.md)
 
+// Works: a bare file name opens the only USER_GUIDE.md in the project.
+// See: (USER_GUIDE.md#tab-bar)
+
+// Warning: two files are named NOTES.md (docs/team_a and docs/team_b).
+// (NOTES.md)
+
 // Not a link: no parentheses.
 // docs/user_guide/USER_GUIDE.md#tab-bar
 

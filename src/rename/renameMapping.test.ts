@@ -66,7 +66,40 @@ describe('findMovedTarget', () => {
   });
 });
 
+describe('findMovedTarget, bare file names', () => {
+  const namesakesOf = (byName: Record<string, string[]>) => (name: string) => Promise.resolve(byName[name] ?? []);
+
+  it('follows a bare name that only one file had to where that file is now', async () => {
+    const renames: Rename[] = [{ from: '/ws/docs/guide/OLD.md', to: '/ws/docs/guide/NEW.md' }];
+    const target = await findMovedTarget('OLD.md', '/ws/src/a.ts', '/ws', renames, isFileIn(['/ws/docs/guide/NEW.md']), namesakesOf({ 'OLD.md': ['/ws/docs/guide/OLD.md'] }));
+    expect(target).toEqual({ before: '/ws/docs/guide/OLD.md', after: '/ws/docs/guide/NEW.md', style: 'name' });
+  });
+
+  it('finds nothing when the name was not unique, or without namesakes', async () => {
+    const files = isFileIn(['/ws/a/X.md', '/ws/b/X.md']);
+    expect(await findMovedTarget('X.md', '/ws/src/a.ts', '/ws', [], files, namesakesOf({ 'X.md': ['/ws/a/X.md', '/ws/b/X.md'] }))).toBeUndefined();
+    expect(await findMovedTarget('X.md', '/ws/src/a.ts', '/ws', [], isFileIn(['/ws/a/X.md']))).toBeUndefined();
+  });
+
+  it('does not look a path up by name', async () => {
+    const namesakes = namesakesOf({ 'X.md': ['/ws/a/X.md'] });
+    expect(await findMovedTarget('./X.md', '/ws/src/a.ts', '/ws', [], isFileIn(['/ws/a/X.md']), namesakes)).toBeUndefined();
+  });
+});
+
 describe('rewriteRef', () => {
+  it('keeps a bare file name bare when the new name is unique', async () => {
+    const files = ['/ws/docs/guide/NEW.md'];
+    const resolve = (refPath: string) => Promise.resolve(refPath === 'NEW.md' ? files[0] : resolverFor(files, '/ws/src/a.ts')(refPath));
+    expect(await rewriteRef(ref('OLD.md', 'x'), '/ws/src/a.ts', '/ws', files[0], 'name', resolve)).toBe('NEW.md#x');
+  });
+
+  it('writes a path from the root when the new name is not unique', async () => {
+    const files = ['/ws/docs/guide/NEW.md', '/ws/other/NEW.md'];
+    const text = await rewriteRef(ref('OLD.md'), '/ws/src/a.ts', '/ws', files[0], 'name', resolverFor(files, '/ws/src/a.ts'));
+    expect(text).toBe('docs/guide/NEW.md');
+  });
+
   it('keeps a reference relative to the source folder, with its anchor', async () => {
     const files = ['/ws/docs/new.md'];
     const text = await rewriteRef(ref('../docs/old.md', 'intro'), '/ws/src/a.ts', '/ws', files[0], 'source', resolverFor(files, '/ws/src/a.ts'));

@@ -5,7 +5,7 @@
  */
 
 import * as posix from 'node:path/posix';
-import { candidatePaths, isInside } from '../resolve/paths';
+import { candidatePaths, isBareName, isInside } from '../resolve/paths';
 import { findLinkRefs } from '../scan/linkScanner';
 
 /** A file or folder that was renamed or moved. */
@@ -15,10 +15,10 @@ export interface Rename {
 }
 
 /**
- * How a reference names its file: relative to the source file's folder, or
- * relative to the workspace folder root.
+ * How a reference names its file: relative to the source file's folder,
+ * relative to the workspace folder root, or by its bare file name alone.
  */
-export type LinkStyle = 'source' | 'root';
+export type LinkStyle = 'source' | 'root' | 'name';
 
 /** The file a reference named before the renames. */
 export interface MovedTarget {
@@ -68,13 +68,17 @@ function movePath(path: string, from: string, to: string): string {
 
 /**
  * Finds the file a reference named before the renames, the same way
- * `LinkService.resolveTarget` does (source folder first, then the workspace
- * root), and where that file is now. The file must still exist.
+ * `LinkService.resolve` does (source folder first, then the workspace root,
+ * then a bare file name that only one file had), and where that file is now.
+ * The file must still exist.
  * @param refPath - The path as written.
  * @param oldSource - Where the source file was before the renames.
  * @param oldRoot - The workspace folder root the source file was in, if any.
  * @param renames - The renames, in the order they happened.
  * @param isFile - Reports whether a file exists now.
+ * @param namesakes - Returns where the markdown files that had a file name
+ *   in the old workspace folder were before the renames. Without it, bare
+ *   file names aren't looked up.
  * @returns The target, or undefined when the reference named no file that still exists.
  */
 export async function findMovedTarget(
@@ -83,6 +87,7 @@ export async function findMovedTarget(
   oldRoot: string | undefined,
   renames: readonly Rename[],
   isFile: (path: string) => Promise<boolean>,
+  namesakes?: (name: string) => Promise<readonly string[]>,
 ): Promise<MovedTarget | undefined> {
   const docDir = posix.dirname(oldSource);
   const allowed = oldRoot ?? docDir;
@@ -92,14 +97,19 @@ export async function findMovedTarget(
     const after = mapForward(before, renames);
     if (await isFile(after)) return { before, after, style: index === 0 ? 'source' : 'root' };
   }
-  return undefined;
+  if (oldRoot === undefined || !namesakes || !isBareName(refPath)) return undefined;
+  const found = await namesakes(refPath);
+  if (found.length !== 1) return undefined;
+  const after = mapForward(found[0], renames);
+  return (await isFile(after)) ? { before: found[0], after, style: 'name' } : undefined;
 }
 
 /**
  * Returns the text that replaces a reference (its path and anchor, inside the
  * brackets) so that it names the target again. The reference keeps its style
- * when that works, else takes the other one, and keeps a leading `./`. A path
- * with a space is put in `<…>`.
+ * when that works, else takes another one, and keeps a leading `./`. A bare
+ * file name stays bare when the new name is unique, else it becomes a path
+ * from the workspace folder root. A path with a space is put in `<…>`.
  * @param ref - The reference as written.
  * @param newSource - Where the source file is now.
  * @param newRoot - The workspace folder root the source file is in now, if any.
@@ -116,7 +126,8 @@ export async function rewriteRef(
   style: LinkStyle,
   resolve: (refPath: string) => Promise<string | undefined>,
 ): Promise<string | undefined> {
-  const styles: LinkStyle[] = style === 'source' ? ['source', 'root'] : ['root', 'source'];
+  const styles: LinkStyle[] =
+    style === 'source' ? ['source', 'root'] : style === 'root' ? ['root', 'source'] : ['name', 'root', 'source'];
   for (const tried of styles) {
     const path = relativePath(ref.path, newSource, newRoot, target, tried);
     if (path === undefined) continue;
@@ -133,6 +144,7 @@ function relativePath(
   target: string,
   style: LinkStyle,
 ): string | undefined {
+  if (style === 'name') return posix.basename(target);
   if (style === 'root') return newRoot !== undefined && isInside(newRoot, target) ? posix.relative(newRoot, target) : undefined;
   const path = posix.relative(posix.dirname(newSource), target);
   return written.startsWith('./') && !path.startsWith('../') ? `./${path}` : path;

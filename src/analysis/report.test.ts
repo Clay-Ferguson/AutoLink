@@ -133,3 +133,17 @@ describe('formatReport', () => {
     expect(report.match(/^None\.$/gm)).toHaveLength(3);
   });
 });
+
+describe('formatReport, ambiguous file names', () => {
+  it('labels the link and names the files it may mean', () => {
+    const report = formatReport({
+      ...analysis,
+      sources: [
+        { path: 'src/a.ts', links: [{ line: 1, column: 5, path: 'NOTES.md', status: 'ambiguousFile', matches: ['a/NOTES.md', 'b/NOTES.md'] }] },
+      ],
+    });
+    expect(report).toContain('src/a.ts:1:5  AMBIGUOUS FILE  NOTES.md  matches a/NOTES.md, b/NOTES.md');
+    expect(report).toContain('1:5  AMBIGUOUS FILE  NOTES.md  matches a/NOTES.md, b/NOTES.md');
+    expect(report).toContain('- Links: 1 (0 OK, 1 broken)');
+  });
+});

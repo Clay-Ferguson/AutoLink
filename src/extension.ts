@@ -45,6 +45,12 @@ export function activate(context: vscode.ExtensionContext): void {
     service.invalidateMarkdown(uri);
     diagnostics.refreshAllSoon();
   };
+  // A new or deleted markdown file can change which file a bare name such as
+  // `(USER_GUIDE.md)` means; editing one can't.
+  const onMarkdownAddedOrRemoved = (uri: vscode.Uri): void => {
+    service.invalidateMarkdownIndex();
+    onMarkdownChanged(uri);
+  };
 
   registerProvider();
   context.subscriptions.push(
@@ -61,11 +67,12 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand(CHECK_PROJECT_LINKS_COMMAND, (resource: unknown) =>
       checkProjectLinks(service, resource),
     ),
-    watcher.onDidCreate(onMarkdownChanged),
+    watcher.onDidCreate(onMarkdownAddedOrRemoved),
     watcher.onDidChange(onMarkdownChanged),
-    watcher.onDidDelete(onMarkdownChanged),
+    watcher.onDidDelete(onMarkdownAddedOrRemoved),
     // Renaming a folder may report no change for the markdown files inside it.
     vscode.workspace.onDidRenameFiles(() => {
+      service.invalidateMarkdownIndex();
       service.invalidateMarkdown();
       diagnostics.refreshAll();
     }),
@@ -81,13 +88,20 @@ export function activate(context: vscode.ExtensionContext): void {
       if (isMarkdown(document.uri)) onMarkdownChanged(document.uri);
     }),
     vscode.workspace.onDidChangeConfiguration((event) => {
+      if (event.affectsConfiguration('files.exclude') || event.affectsConfiguration('search.exclude')) {
+        service.invalidateMarkdownIndex();
+        diagnostics.refreshAll();
+      }
       if (!event.affectsConfiguration(CONFIG_SECTION)) return;
       config = readConfig();
+      // Exclusions decide which markdown files a bare name may mean.
+      service.invalidateMarkdownIndex();
       registerProvider();
       diagnostics.refreshAll();
     }),
     vscode.workspace.onDidChangeWorkspaceFolders(() => {
       // Workspace folders decide where references resolve.
+      service.invalidateMarkdownIndex();
       service.invalidateMarkdown();
       diagnostics.refreshAll();
     }),
