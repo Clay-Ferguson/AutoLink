@@ -1,9 +1,17 @@
 # AutoLink
 
-AutoLink is a VS Code extension that checks and maintains links to markdown
-files across a whole project. It has three main uses, and each works without
-the others:
+AutoLink is a **VSCode Extension** that checks and maintains links to markdown
+files across a whole project. AutoLink allows you to click links
+that exist in source code comments for any kind of source code, to open the linked 
+files (i.e. basic hyperlink type functionality). This makes it a better UX for 
+having specific documentation/spec content be linked to by the code that implements
+it.
 
+AutoLink has three main uses, and each works without the others:
+
+- **Make doc references in source code clickable.** Write a path to a `.md`
+  file, optionally followed by a `#heading-anchor`, in parentheses anywhere in
+  a source file:
 - **Find broken links in a project's markdown docs.** **Check Project Links**
   reads every text file in the workspace folder, markdown files included, and
   reports each link to a `.md` file or heading that doesn't exist. A link from
@@ -17,9 +25,7 @@ the others:
   [`autolink.updateLinksOnRename`](#settings) to `always` to have this happen
   without asking. Moves made outside VS Code, such as `git mv`, aren't seen;
   **Check Project Links** finds the links they broke.
-- **Make doc references in source code clickable.** Write a path to a `.md`
-  file, optionally followed by a `#heading-anchor`, in parentheses anywhere in
-  a source file:
+
 
   ```ts
   // See: (docs/user_guide/USER_GUIDE.md#tab-bar)
